@@ -11,7 +11,7 @@ import {
 import { SuperAdmin } from './superadmin.entity';
 
 @Entity()
-export class Credential {
+export class SuperAdminCredential {
     @PrimaryGeneratedColumn()
     id: number;
 

@@ -7,105 +7,121 @@ import crypto from 'crypto';
 import { AppDataSource } from '../data-source';
 import { redisClient } from '../config/redis'
 import { Repository } from 'typeorm';
-import { Credential } from '../entity/credential.entity';
-import { SuperAdmin } from '../entity/superadmin.entity';
+import { SuperAdminCredential } from '../entity/credential.entity';
+import { SuperAdmin, UserType } from '../entity/superadmin.entity';
 import { createError } from '../utils';
 import { SuperAdminDTO } from '../schema/superAdminSchema';
 
 
 
 class AuthService {
-    credentialRepository: Repository<Credential>;
+    credentialRepository: Repository<SuperAdminCredential>;
     userRepository: Repository<SuperAdmin>;
 
     constructor() {
-        this.credentialRepository = AppDataSource.getRepository(Credential);
+        this.credentialRepository = AppDataSource.getRepository(SuperAdminCredential);
         this.userRepository = AppDataSource.getRepository(SuperAdmin);
     }
 
 
 
-    async login(data: SuperAdminDTO) {
-        const redisKey = `auth:${crypto
-            .createHash('sha256')
-            .update(data.email + data.password)
-            .digest('hex')}`;
-        const cached = await redisClient.get(redisKey);
-        if (cached) {
-            // Fetch user to generate JWT
-            const credential = await this.credentialRepository.findOne({
-                where: { email: data.email },
-                relations: ['user'],
-            });
+async login(data: SuperAdminDTO) {
+  const DAY = 86400;
+  const FAIL_TTL = 900;
+  const MAX_FAILS = 5;
 
-            if (!credential) {
-                throw createError('invalid credentials', 401);
-            }
+  const failKey = `login:fail:${data.email}`;
 
-            const token = jwt.sign(
-                {
-                    id: credential.user.id,
-                    email: credential.email,
-                    firstName: credential.user.firstName,
-                    lastName: credential.user.lastName,
-                },
-                config.JWT_SECRET,
-                { expiresIn: config.JWT_EXPIRES_IN as ms.StringValue },
-            );
-            await redisClient.setex(
-                `auth:${credential.user.id}:${token}`,
-                24 * 60 * 60,
-                'true',
-            );
+  /* ---------------- Brute-force protection ---------------- */
+  const failCount = Number(await redisClient.get(failKey) || 0);
+  if (failCount >= MAX_FAILS) {
+    throw createError('too many login attempts, try later', 429);
+  }
 
+  /* ---------------- Fetch credential + user ---------------- */
+  const credential = await this.credentialRepository.findOne({
+    where: { email: data.email },
+    relations: ['user'],
+  });
 
-            return {
-                token,
-                firstName: credential.user.firstName,
-                lastName: credential.user.lastName,
-                email: credential.email,
-            };
-        }
-        const credential = await this.credentialRepository.findOne({
-            where: { email: data.email },
-            relations: ['user'],
-        });
+  /* ---------------- Authorization gate (NO bcrypt yet) ---------------- */
+  if (
+    !credential ||
+    credential.user.userType !== UserType.SUPER_ADMIN ||
+    credential.user.isVerified !== true ||
+    credential.user.isDeleted === true ||
+    credential.user.status !== 'ACTIVE'
+  ) {
+    await redisClient
+      .multi()
+      .incr(failKey)
+      .expire(failKey, FAIL_TTL)
+      .exec();
 
-        if (!credential) {
-            throw createError('invalid credentials', 401);
-        }
+    throw createError('invalid credentials', 401);
+  }
 
-        const isValidPassword = await bcrypt.compare(
-            data.password,
-            credential.passwordHash,
-        );
+  /* ---------------- Password validation cache ---------------- */
+  const pwdCacheKey = `pwd:${credential.id}:${credential.passwordHash}`;
+  let passwordValid = false;
 
-        if (!isValidPassword) {
-            throw createError('invalid credentials', 401);
-        }
-        await redisClient.setex(redisKey, 24 * 60 * 60, 'true');
-        const token = jwt.sign(
-            {
-                id: credential.user.id,
-                email: credential.email,
-                firstName: credential.user.firstName,
-                lastName: credential.user.lastName,
-            },
-            config.JWT_SECRET,
-            { expiresIn: config.JWT_EXPIRES_IN as ms.StringValue },
-        );
-        await redisClient.setex(
-            `auth:${credential.user.id}:${token}`,
-            24 * 60 * 60,
-            'true',
-        );
-        return {
-            token,
-            firstName: credential.user.firstName,
-            lastName: credential.user.lastName,
-            email: credential.email,
-        };
+  try {
+    passwordValid = await redisClient.exists(pwdCacheKey) === 1;
+  } catch {
+    // Redis down → fallback safely
+  }
+
+  if (!passwordValid) {
+    const isValid = await bcrypt.compare(
+      data.password,
+      credential.passwordHash,
+    );
+
+    if (!isValid) {
+      await redisClient
+        .multi()
+        .incr(failKey)
+        .expire(failKey, FAIL_TTL)
+        .exec();
+
+      throw createError('invalid credentials', 401);
     }
+
+    // Fire-and-forget cache write
+    redisClient.setex(pwdCacheKey, DAY, '1').catch(() => {});
+  }
+
+  /* ---------------- Successful login cleanup ---------------- */
+  redisClient.del(failKey).catch(() => {});
+
+  /* ---------------- JWT creation ---------------- */
+  const token = jwt.sign(
+    {
+      sub: credential.user.id,
+      role: credential.user.userType,
+      email: credential.email,
+    },
+    config.JWT_SECRET,
+    { expiresIn: config.JWT_EXPIRES_IN as ms.StringValue },
+  );
+
+  /* ---------------- Secure session storage ---------------- */
+  const tokenHash = crypto
+    .createHash('sha256')
+    .update(token)
+    .digest('hex');
+
+  redisClient
+    .setex(`auth:${credential.user.id}:${tokenHash}`, DAY, '1')
+    .catch(() => {});
+
+  return {
+    token,
+    email: credential.email,
+    firstName: credential.user.firstName,
+    lastName: credential.user.lastName,
+  };
+}
 
 
 

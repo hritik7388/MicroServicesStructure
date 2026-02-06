@@ -1,6 +1,6 @@
 import { AppDataSource } from '../data-source';
 import { SuperAdmin, UserType, SuperAdminStatus } from '../entity/superadmin.entity';
-import { Credential } from '../entity/credential.entity';
+import { SuperAdminCredential } from '../entity/credential.entity';
 import bcrypt from 'bcryptjs';
 import logger from '../config/logger';
 
@@ -19,7 +19,7 @@ export const createDefaultSuperAdmin = async () => {
     const passwordHash = await bcrypt.hash(defaultPassword, 10);
 
     // Create Credential entity
-    const credential = new Credential();
+    const credential = new SuperAdminCredential();
     credential.email = 'superadmin@mailinator.com';
     credential.passwordHash = passwordHash;
 

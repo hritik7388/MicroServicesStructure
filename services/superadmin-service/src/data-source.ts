@@ -1,6 +1,6 @@
 import { DataSource } from 'typeorm';
 import { SuperAdmin } from './entity/superadmin.entity';
-import { Credential } from './entity/credential.entity';
+import { SuperAdminCredential } from './entity/credential.entity';
 
  export const AppDataSource = new DataSource({
     type: 'mysql',
@@ -11,5 +11,5 @@ import { Credential } from './entity/credential.entity';
     database: process.env.DB_NAME || 'MICRO_SERVICES_STRUCTURE',
     synchronize: true, // optional: only for dev
     logging: true,
-     entities: [SuperAdmin, Credential],
+     entities: [SuperAdmin, SuperAdminCredential],
 });

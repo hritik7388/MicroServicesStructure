@@ -8,7 +8,7 @@ import {
     Index,
     JoinColumn,
 } from 'typeorm';
-import { Credential } from './credential.entity';
+import { SuperAdminCredential } from './credential.entity';
 
 export enum SuperAdminStatus {
     ACTIVE = 'ACTIVE',
@@ -47,6 +47,9 @@ export class SuperAdmin {
     @Column({ default: false })
     isVerified: boolean;
 
+  @Column({ default: false })
+    isDeleted: boolean;
+
     @Column({ nullable: true })
     otp?: string;
 
@@ -62,9 +65,9 @@ export class SuperAdmin {
     @Column({ type: 'json', nullable: true })
     coordinates?: { lat: number; lng: number };
 
-    @OneToOne(() => Credential, credential => credential.user, { cascade: true })
+    @OneToOne(() => SuperAdminCredential, credential => credential.user, { cascade: true })
     @JoinColumn() // SuperAdmin is the owner
-    credential: Credential;
+    credential: SuperAdminCredential;
 
     @CreateDateColumn({ name: 'created_at' })
     createdAt: Date;
