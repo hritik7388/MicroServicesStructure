@@ -1,0 +1,59 @@
+name: Microservices CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+      DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_HUB_PASSWORD }}
+      DEPLOY_SERVER: ${{ secrets.DEPLOY_SERVER }}
+      SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+      PROJECT_DIR: /home/ubuntu/microservicesstructure
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_HUB_USERNAME }}
+        password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+
+    - name: Build & Push SuperAdmin
+      run: |
+        docker build -t ${DOCKER_HUB_USERNAME}/superadmin:latest ./superAdmin-service
+        docker push ${DOCKER_HUB_USERNAME}/superadmin:latest
+
+    - name: Build & Push Subadmin
+      if: ${{ github.event_name == 'push' && fileExists('subadmin-service/Dockerfile') }}
+      run: |
+        docker build -t ${DOCKER_HUB_USERNAME}/subadmin:latest ./subadmin-service
+        docker push ${DOCKER_HUB_USERNAME}/subadmin:latest
+
+    - name: Build & Push API Gateway
+      if: ${{ github.event_name == 'push' && fileExists('api-gateway/Dockerfile') }}
+      run: |
+        docker build -t ${DOCKER_HUB_USERNAME}/api-gateway:latest ./api-gateway
+        docker push ${DOCKER_HUB_USERNAME}/api-gateway:latest
+
+    - name: Deploy to Server
+      uses: appleboy/ssh-action@v0.1.9
+      with:
+        host: ${{ secrets.DEPLOY_SERVER }}
+        username: ubuntu
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        script: |
+          cd ${PROJECT_DIR}
+          docker-compose pull
+          docker-compose up -d --build
