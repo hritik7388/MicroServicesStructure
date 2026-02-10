@@ -18,9 +18,9 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    # 2️⃣ Setup Docker Buildx
-    - name: Setup Docker Buildx
-      uses: docker/setup-buildx-action@v2
+    # # 2️⃣ Setup Docker Buildx
+    # - name: Setup Docker Buildx
+    #   uses: docker/setup-buildx-action@v2
 
     # 3️⃣ Docker Hub login (skip for learning)
     # - name: Docker Hub Login
@@ -34,16 +34,16 @@ jobs:
     - name: Build SuperAdmin
       run: |
         echo "Building SuperAdmin..."
-        docker build -t superadmin:latest ./superAdmin-service
+        # docker build -t superadmin:latest ./superAdmin-service
         # Skipping push in learning mode
-        echo "Learning mode: skipping Docker push"
+        # echo "Learning mode: skipping Docker push"
 
     # 5️⃣ Build Subadmin (if exists)
     - name: Build Subadmin
       run: |
-        if [ -f ./subadmin-service/Dockerfile ]; then
+        # if [ -f ./subadmin-service/Dockerfile ]; then
           echo "Building Subadmin..."
-          docker build -t subadmin:latest ./subadmin-service
+          # docker build -t subadmin:latest ./subadmin-service
           # Skipping push in learning mode
           echo "Learning mode: skipping Docker push"
         else
@@ -54,7 +54,7 @@ jobs:
       run: |
         if [ -f ./api-gateway/Dockerfile ]; then
           echo "Building API Gateway..."
-          docker build -t api-gateway:latest ./api-gateway
+          # docker build -t api-gateway:latest ./api-gateway
           # Skipping push in learning mode
           echo "Learning mode: skipping Docker push"
         else
