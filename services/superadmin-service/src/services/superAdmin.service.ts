@@ -115,11 +115,18 @@ async login(data: SuperAdminDTO) {
     .setex(`auth:${credential.user.id}:${tokenHash}`, DAY, '1')
     .catch(() => {});
 
-  return {
-    token,
+    const Response={
+       id:credential.id,
     email: credential.email,
     firstName: credential.user.firstName,
     lastName: credential.user.lastName,
+    }
+
+  return {
+    message:"Login Successfully completed",
+    token:token,
+    data:Response
+   
   };
 }
 

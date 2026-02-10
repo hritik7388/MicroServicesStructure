@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
-import { z } from 'zod';
+import { email, z } from 'zod';
 import AuthService from '../services/superAdmin.service';
 import { superAdminSchema } from '../schema/superAdminSchema';
+import { id } from 'zod/v4/locales';
 
  
 
@@ -14,9 +15,14 @@ export class AuthController {
  
   async login(req: Request, res: Response): Promise<any> {
     const data = superAdminSchema.parse(req.body);
-    const { token } = await this.authService.login(data);
+    const userdata= await this.authService.login(data);
 
-    return res.status(200).json({ token });
+    return res.status(200).json({ 
+      message:userdata.message,
+      token:userdata.token,
+       data:userdata.data
+
+     });
   }
 
   async logout(req: Request, res: Response): Promise<any> {
