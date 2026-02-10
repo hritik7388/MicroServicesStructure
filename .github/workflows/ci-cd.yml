@@ -1,74 +1,82 @@
 name: Microservices CI/CD - Learning Mode
 
+# Trigger workflow on push or PR to main branch
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
 
-env:
-  MODE: "learning"  # Learning mode, no Docker push or deploy
-
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
 
     steps:
-    # 1️⃣ Checkout repo
+    # -------------------------------------------------
+    # 1️⃣ Checkout code
+    # This step pulls the latest code from GitHub
     - name: Checkout code
       uses: actions/checkout@v3
 
-    # # 2️⃣ Setup Docker Buildx
-    # - name: Setup Docker Buildx
-    #   uses: docker/setup-buildx-action@v2
+    # -------------------------------------------------
+    # 2️⃣ Setup Docker Buildx (optional, harmless)
+    # Needed for multi-arch builds in Docker, safe to include even if we skip builds
+    - name: Setup Docker Buildx
+      uses: docker/setup-buildx-action@v2
 
-    # 3️⃣ Docker Hub login (skip for learning)
+    # -------------------------------------------------
+    # 3️⃣ Build SuperAdmin (Learning mode)
+    # In learning mode, we skip the actual Docker build.
+    # Only logs are printed to show pipeline step is reached
+    - name: Build SuperAdmin
+      run: |
+        echo "Step 1: Building SuperAdmin... (learning mode, skipping Docker build)"
+        # To enable real build later, uncomment below:
+        # docker build -t superadmin:latest ./superAdmin-service
+
+    # -------------------------------------------------
+    # 4️⃣ Build Subadmin (Learning mode)
+    - name: Build Subadmin
+      run: |
+        echo "Step 2: Building Subadmin... (learning mode, skipping Docker build)"
+        # To enable real build later, uncomment below:
+        # if [ -f ./subadmin-service/Dockerfile ]; then
+        #   docker build -t subadmin:latest ./subadmin-service
+        # else
+        #   echo "Subadmin service does not exist. Skipping..."
+        # fi
+
+    # -------------------------------------------------
+    # 5️⃣ Build API Gateway (Learning mode)
+    - name: Build API Gateway
+      run: |
+        echo "Step 3: Building API Gateway... (learning mode, skipping Docker build)"
+        # To enable real build later, uncomment below:
+        # if [ -f ./api-gateway/Dockerfile ]; then
+        #   docker build -t api-gateway:latest ./api-gateway
+        # else
+        #   echo "API Gateway service does not exist. Skipping..."
+        # fi
+
+    # -------------------------------------------------
+    # 6️⃣ Docker Hub login (Learning mode skipped)
+    # Uncomment for production mode
     # - name: Docker Hub Login
-    #   if: env.MODE == 'production'
     #   uses: docker/login-action@v2
     #   with:
     #     username: ${{ secrets.DOCKER_HUB_USERNAME }}
     #     password: ${{ secrets.DOCKER_HUB_PASSWORD }}
 
-    # 4️⃣ Build SuperAdmin
-    - name: Build SuperAdmin
-      run: |
-        echo "Building SuperAdmin..."
-        # docker build -t superadmin:latest ./superAdmin-service
-        # Skipping push in learning mode
-        # echo "Learning mode: skipping Docker push"
-
-    # 5️⃣ Build Subadmin (if exists)
-    - name: Build Subadmin
-      run: |
-        # if [ -f ./subadmin-service/Dockerfile ]; then
-          echo "Building Subadmin..."
-          # docker build -t subadmin:latest ./subadmin-service
-          # Skipping push in learning mode
-          # echo "Learning mode: skipping Docker push"
-        else
-          echo "Subadmin service does not exist. Skipping..."
-
-    # 6️⃣ Build API Gateway (if exists)
-    - name: Build API Gateway
-      run: |
-        # if [ -f ./api-gateway/Dockerfile ]; then
-          echo "Building API Gateway..."
-          # docker build -t api-gateway:latest ./api-gateway
-          # Skipping push in learning mode
-          echo "Learning mode: skipping Docker push"
-        else
-          echo "API Gateway service does not exist. Skipping..."
-
-    # 7️⃣ Deploy to server via SSH (skip for learning)
+    # -------------------------------------------------
+    # 7️⃣ Deploy to server via SSH (Learning mode skipped)
+    # Uncomment for production mode
     # - name: Deploy to Server
-    #   if: env.MODE == 'production'
     #   uses: appleboy/ssh-action@v0.1.9
     #   with:
     #     host: ${{ secrets.DEPLOY_SERVER }}
     #     username: ${{ secrets.SERVER_USER }}
     #     key: ${{ secrets.SERVER_SSH_KEY }}
     #     script: |
-    #       cd ${PROJECT_DIR}
+    #       cd /home/ubuntu/microservicesstructure
     #       docker-compose pull
     #       docker-compose up -d --build
