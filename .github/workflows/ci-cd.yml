@@ -11,8 +11,8 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
-      DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_HUB_PASSWORD }}
+      # DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+      # DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_HUB_PASSWORD }}
       DEPLOY_SERVER: ${{ secrets.DEPLOY_SERVER }}
       SERVER_USER: ${{ secrets.SERVER_USER }}
       SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
