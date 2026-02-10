@@ -45,14 +45,14 @@ jobs:
           echo "Building Subadmin..."
           # docker build -t subadmin:latest ./subadmin-service
           # Skipping push in learning mode
-          echo "Learning mode: skipping Docker push"
+          # echo "Learning mode: skipping Docker push"
         else
           echo "Subadmin service does not exist. Skipping..."
 
     # 6️⃣ Build API Gateway (if exists)
     - name: Build API Gateway
       run: |
-        if [ -f ./api-gateway/Dockerfile ]; then
+        # if [ -f ./api-gateway/Dockerfile ]; then
           echo "Building API Gateway..."
           # docker build -t api-gateway:latest ./api-gateway
           # Skipping push in learning mode
