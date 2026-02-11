@@ -10,7 +10,6 @@
     "lint": "eslint --fix",
     "format": "prettier --write 'src/**/*.ts'",
     "test": "jest"
-    
   },
   "keywords": [],
   "author": "",
