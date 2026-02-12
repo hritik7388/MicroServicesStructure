@@ -13,21 +13,31 @@ export class AuthController {
     this.authService = new AuthService();
   }
 
+  async register(req: Request, res: Response): Promise<any> {
+    const data = registerSchema.parse(req.body);
+
+    const result = await this.authService.registerSubAdmin(data);
+
+    return res.status(201).json({
+      message: result.message, 
+    });
+  }
+
   async login(req: Request, res: Response): Promise<any> {
     const data = subAdminSchema.parse(req.body);
     const userdata = await this.authService.login(data);
 
     return res.status(200).json({
       message: userdata.message,
-      token: userdata.token,
-      data: userdata.data
+      // token: userdata.token,
+      // data: userdata.data
 
     });
   }
 
-  async logout(req: Request, res: Response): Promise<any> {
-    await this.authService.logout(req.userId!, req.token);
+  // async logout(req: Request, res: Response): Promise<any> {
+  //   await this.authService.logout(req.userId!, req.token);
 
-    return res.status(200).json({ message: 'logged out successfully' });
-  }
+  //   return res.status(200).json({ message: 'logged out successfully' });
+  // }
 }
